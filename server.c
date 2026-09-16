@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     }
 
     // open a socket file descriptor
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0); // maybe use SOCK_RAW? or ipproto = 0
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if(socket_fd == -1)
     {
