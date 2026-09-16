@@ -1,16 +1,17 @@
-# for linux, should be in system include path...
-# g = gcc
-
 # for my mac
-g = gcc -g -I/opt/homebrew/opt/openssl/include -L/opt/homebrew/opt/openssl/lib -lcrypto 
+# g = gcc -g -I/opt/homebrew/opt/openssl/include -L/opt/homebrew/opt/openssl/lib -lcrypto 
+
+# linux link w libssl (install libssl-dev)
+g = gcc -fpermissive
+l = -lssl -lcrypto
 
 all: build/server build/client
 
 build/server: build/server.o build/streamcipher.o
-	$(g) $^ -o $@
+	$(g) $^ -o $@ $(l)
 
 build/client: build/client.o build/streamcipher.o
-	$(g) $^ -o $@
+	$(g) $^ -o $@ $(l)
 
 build/client.o: sources/client.c
 	$(g) -c $^ -o $@
