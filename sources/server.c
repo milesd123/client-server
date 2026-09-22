@@ -1,9 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <unistd.h>
+#include "../headers/headers.h"
+
+unsigned char* key = (unsigned char*) "Hello World Key";
+unsigned char* iv = (unsigned char*) "Hello World Init Vector";
 
 int main(int argc, char* argv[])
 {
@@ -23,16 +21,16 @@ int main(int argc, char* argv[])
 
     if(!success)
     {
-        printf("Invalid address input\n");
+        printf("[Server] Invalid address input\n");
         return 1;
     }
 
     // open a socket file descriptor
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0); // maybe use SOCK_RAW? or ipproto = 0
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if(socket_fd == -1)
     {
-        printf("Error calling socket(): %s \n", strerror(errno));
+        printf("[Server] Error calling socket(): %s \n", strerror(errno));
         return 1;
     }
 
@@ -42,7 +40,7 @@ int main(int argc, char* argv[])
 
     if(bound == -1)
     {
-        printf("Error calling bind(): %s \n", strerror(errno));
+        printf("[Server] Error calling bind(): %s \n", strerror(errno));
         return 1;
     }
 
@@ -51,10 +49,10 @@ int main(int argc, char* argv[])
 
     if(l == -1)
     {
-        printf("Error calling listen(): %s \n", strerror(errno));
+        printf("[Server] Error calling listen(): %s \n", strerror(errno));
         return 1;
     }
-    printf("Listening for connections\n");
+    printf("[Server] Listening for connections\n");
 
     // accept new connections
     struct sockaddr_in peer_socket;
@@ -65,10 +63,12 @@ int main(int argc, char* argv[])
 
     if(new_socket_fd == -1)
     {
-        printf("Error calling listen(): %s \n", strerror(errno));
+        printf("[Server] Error calling listen(): %s \n", strerror(errno));
         return 1;
     }
-    printf("Client connected. \n");
+    printf("[Server] Client connected. \n");
+
+
 
 
     // incoming message buffer
@@ -76,24 +76,33 @@ int main(int argc, char* argv[])
     char incoming_buffer[buffer_len];
     int flags = 0; 
 
-
-
-
-    // RECEIVE
+    // Receive Message
     ssize_t recvd = 0;
     recvd += recv(new_socket_fd, incoming_buffer, buffer_len, flags);
-    printf("Received %zu bytes: %s\n", recvd, incoming_buffer);
+    printf("[Server] Received Encrypted Message: %s\n", incoming_buffer);
 
 
-    // SEND
+    // Decrypt Message
+    char* decrypted_message[256];
+    block_decrypt((unsigned char*)incoming_buffer, (int) recvd, key, iv, (unsigned char*)decrypted_message);
+
+    printf("[Server] Decrypted Message: %s \n", decrypted_message);
+
+    // Create message
     char* message = "Hello Miles Dripps from Server!!!";
 
-    ssize_t sent = send(new_socket_fd, message, strlen(message), flags);
-    printf("Sent %zu bytes. \n", sent);
+    // Encrypt Message
+    unsigned char* message_encrypted[256];
+    block_encrypt((unsigned char*)message, (int) strlen(message), key, iv, message_encrypted);
+
+    // Send Message
+    ssize_t sent = send(new_socket_fd, message_encrypted, strlen(message_encrypted), flags);
+    printf("[Server] Sent: %s -> Encrypted -> %s \n", message, message_encrypted);
+
 
     // close connected socket
     int closed = close(new_socket_fd);  
-    printf("Closed.\n");
+    printf("[Server] Closed.\n");
 
 
 }
