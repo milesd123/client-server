@@ -10,7 +10,7 @@ char *key, unsigned char *iv, unsigned char *ciphertext)
     ctx = EVP_CIPHER_CTX_new();
 
     /* Initialize the decryption operation. */
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_cfb8(), NULL, key, iv);
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
 
     /* Provide the message to be encrypted, and obtain the encrypted
        output. EVP_EncryptUpdate can be called multiple times if necessary */
@@ -37,7 +37,7 @@ char *key, unsigned char *iv, unsigned char *plaintext)
     ctx = EVP_CIPHER_CTX_new();
 
 //  /* Initialize the decryption operation. */
-    EVP_DecryptInit_ex(ctx, EVP_aes_256_cfb8(), NULL, key, iv);
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
 
     /* Provide the message to be decrypted, and obtain the plaintext
     output. EVP_DecryptUpdate can be called multiple times if necessary. */
