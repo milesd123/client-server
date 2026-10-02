@@ -19,6 +19,7 @@ unsigned cal_hmac(unsigned char *mac, char *message)
    
     /* Provide the message to HMAC, and start HMAC authentication. */
     HMAC_Update(ctx, message, strlen(message));
+    
 
     /* HMAC_Final() writes the hashed values to md, which must have enough
     space for the hash function output. */
