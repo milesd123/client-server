@@ -46,35 +46,21 @@ int main(int argc, char* argv[])
     printf("[Client] Connected!\n");
 
     // Create Message
-    char* message = "Hello Server from Miles Dripps!";
+    unsigned char* message = "Hello Server from Miles Dripps!";
     int flags = 0; 
 
+    unsigned char message_hash[1024];
+    unsigned char hash_len = cal_hmac(message_hash, (unsigned char*) message);
 
-    // Encrypt Message
-    unsigned char* message_encrypted[256];
-    block_encrypt((unsigned char*)message, (int) strlen(message), key, iv, message_encrypted);
+    
+    unsigned char message_with_hash[2048];
+    memcpy(message_with_hash, message, 31);
 
+    memcpy(message_with_hash + 31, message_hash, hash_len);
 
     // Send 
-    ssize_t sent = send(socket_fd, message_encrypted, strlen(message_encrypted), flags);
-    printf("[Client] Sent: %s -> Encrypted to -> %s \n", message, message_encrypted);
-    // printf("[Client] Sent Encrypted Message\n");
-
-
-    // Receive
-    size_t buffer_len = 256;
-    char incoming_buffer[buffer_len];
-
-    ssize_t recvd = 0;
-    recvd += recv(socket_fd, incoming_buffer + recvd, buffer_len, flags);
-    printf("[Client] Received Encrypted Message: %s \n", incoming_buffer);
-    // printf("[Client] Received Encrypted Message\n");
-
-    // Decrypt Message
-    char* decrypted_message[256];
-    block_decrypt((unsigned char*)incoming_buffer, (int) recvd, key, iv, (unsigned char*)decrypted_message);
-
-    printf("[Client] Decrypted Message: %s \n", decrypted_message);
+    ssize_t sent = send(socket_fd, message_with_hash, strlen(message_with_hash), flags);
+    printf("[Client] Sent: %s with hash  %s to server\n", message, message_hash);
 
     // Close Connection
     int closed = close(socket_fd);  

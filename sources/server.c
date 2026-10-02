@@ -3,6 +3,18 @@
 unsigned char* key = (unsigned char*) "Hello World Key";
 unsigned char* iv = (unsigned char*) "Hello World Init Vector";
 
+int same(unsigned char* a, unsigned char* b, size_t size)
+{
+
+    for(size_t i = 0; i < size; i++)
+    {
+        if(a[i] != b[i]) return 0;
+    }
+
+    return 1; // true, they are the same
+}
+
+
 int main(int argc, char* argv[])
 {
     if(argc != 2)
@@ -68,36 +80,34 @@ int main(int argc, char* argv[])
     }
     printf("[Server] Client connected. \n");
 
-
-
-
     // incoming message buffer
-    size_t buffer_len = 256;
-    char incoming_buffer[buffer_len];
+    size_t buffer_len = 2048;
+    unsigned char incoming_buffer[buffer_len];
     int flags = 0; 
 
     // Receive Message
     ssize_t recvd = 0;
     recvd += recv(new_socket_fd, incoming_buffer, buffer_len, flags);
-    printf("[Server] Received Encrypted Message: %s\n", incoming_buffer);
+
+    unsigned char message_hash[1024];
+    unsigned char message[32];
+    memcpy(message, incoming_buffer, 31);
+    memcpy(message_hash, incoming_buffer + 31, recvd - 31);
 
 
-    // Decrypt Message
-    char* decrypted_message[256];
-    block_decrypt((unsigned char*)incoming_buffer, (int) recvd, key, iv, (unsigned char*)decrypted_message);
 
-    printf("[Server] Decrypted Message: %s \n", decrypted_message);
+    printf("[Server] Received %zu bytes. Message: %s with hash\n", recvd, message);
 
-    // Create message
-    char* message = "Hello Miles Dripps from Server!!!";
 
-    // Encrypt Message
-    unsigned char* message_encrypted[256];
-    block_encrypt((unsigned char*)message, (int) strlen(message), key, iv, message_encrypted);
+    unsigned char cal_hash[1024];
+    unsigned amt = cal_hmac(cal_hash, message);
 
-    // Send Message
-    ssize_t sent = send(new_socket_fd, message_encrypted, strlen(message_encrypted), flags);
-    printf("[Server] Sent: %s -> Encrypted -> %s \n", message, message_encrypted);
+    if(amt != recvd - 31) {printf("[Server] Hashes not same size");}
+    else{
+        if(same(cal_hash, message_hash, amt)) printf("[Server] Hashes %s and %s Match\n", cal_hash, message_hash);
+        else printf("[Server] Hashes %s and %s Don't Match\n", cal_hash, message_hash);
+    }
+    
 
 
     // close connected socket
