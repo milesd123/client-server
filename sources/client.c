@@ -1,7 +1,9 @@
 #include "../headers/headers.h"
 
-unsigned char* key = (unsigned char*) "Hello World Key";
+unsigned char* key = (unsigned char*) "Hello World!!! This msg is 32 b";
 unsigned char* iv = (unsigned char*) "Hello World Init Vector";
+unsigned char aad[] = "";
+int aad_len = 0;
 
 int main(int argc, char* argv[])
 {
@@ -45,25 +47,45 @@ int main(int argc, char* argv[])
     }
     printf("[Client] Connected!\n");
 
-    // Create Message
-    unsigned char* message = "Hello Server from Miles Dripps!";
-    int flags = 0; 
+        // Create Message
+        unsigned char *message = "Hello Server from Miles Dripps!";
 
-    unsigned char message_hash[1024];
-    unsigned char hash_len = cal_hmac(message_hash, (unsigned char*) message);
+        int flags = 0;
+        int message_len = strlen((char *)message);
 
-    
-    unsigned char message_with_hash[2048];
-    memcpy(message_with_hash, message, 31);
+        unsigned char iv[IV_LEN];
+        unsigned char tag[TAG_LEN];
+        unsigned char ciphertext[1024];
+        unsigned char message_with_hash[1024];
 
-    memcpy(message_with_hash + 31, message_hash, hash_len);
+        RAND_bytes(iv, IV_LEN);
 
-    // Send 
-    ssize_t sent = send(socket_fd, message_with_hash, strlen(message_with_hash), flags);
-    printf("[Client] Sent: %s with hash  %s to server\n", message, message_hash);
+        int ciphertext_len = gcm_encrypt(
+            message, message_len,
+            aad, aad_len,
+            key, iv, IV_LEN,
+            ciphertext, tag
+        );
 
-    // Close Connection
-    int closed = close(socket_fd);  
+        // IV || ciphertext || tag 
+        memcpy(message_with_hash, iv, IV_LEN);
+        memcpy(message_with_hash + IV_LEN, ciphertext, ciphertext_len);
+        memcpy(message_with_hash + IV_LEN + ciphertext_len, tag, TAG_LEN);
+
+        int packet_len = IV_LEN + ciphertext_len + TAG_LEN;
+
+        // SEND
+        ssize_t sent = send(socket_fd, message_with_hash, packet_len, flags);
+
+        printf("Plaintext sent: %s\n", message);
+        printf("Encrypted bytes: ");
+        for (int i = 0; i < ciphertext_len; i++){
+            printf("%02x", ciphertext[i]);
+        }
+    printf("\n");
+
+    //Close connection
+    int closed = close(socket_fd);
     printf("Closed.\n");
 }
 

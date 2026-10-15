@@ -1,7 +1,9 @@
 #include "../headers/headers.h"
 
-unsigned char* key = (unsigned char*) "Hello World Key";
+unsigned char* key = (unsigned char*) "Hello World!!! This msg is 32 b";
 unsigned char* iv = (unsigned char*) "Hello World Init Vector";
+unsigned char aad[] = "";
+int aad_len = 0;
 
 int same(unsigned char* a, unsigned char* b, size_t size)
 {
@@ -81,38 +83,46 @@ int main(int argc, char* argv[])
     printf("[Server] Client connected. \n");
 
     // incoming message buffer
-    size_t buffer_len = 2048;
-    unsigned char incoming_buffer[buffer_len];
-    int flags = 0; 
+    unsigned char incoming_buffer[1024];
+    unsigned char decrypted_message[1024];
 
-    // Receive Message
-    ssize_t recvd = 0;
-    recvd += recv(new_socket_fd, incoming_buffer, buffer_len, flags);
+    int flags = 0;
 
-    unsigned char message_hash[1024];
-    unsigned char message[32];
-    memcpy(message, incoming_buffer, 31);
-    memcpy(message_hash, incoming_buffer + 31, recvd - 31);
+    ssize_t recvd = recv(
+        new_socket_fd, incoming_buffer, sizeof(incoming_buffer), flags
+    );
 
+    unsigned char iv[IV_LEN];
+    unsigned char tag[TAG_LEN];
 
+    memcpy(iv, incoming_buffer, IV_LEN);
 
-    printf("[Server] Received %zu bytes. Message: %s with hash\n", recvd, message);
+    int ciphertext_len = (int)recvd - IV_LEN - TAG_LEN;
 
+    unsigned char *ciphertext = incoming_buffer + IV_LEN;
 
-    unsigned char cal_hash[1024];
-    unsigned amt = cal_hmac(cal_hash, message);
+    memcpy(tag, incoming_buffer + IV_LEN + ciphertext_len, TAG_LEN);
 
-    if(amt != recvd - 31) {printf("[Server] Hashes not same size");}
-    else{
-        if(same(cal_hash, message_hash, amt)) printf("[Server] Hashes %s and %s Match\n", cal_hash, message_hash);
-        else printf("[Server] Hashes %s and %s Don't Match\n", cal_hash, message_hash);
+    printf("Encrypted bytes: ");
+    for (int i = 0; i < ciphertext_len; i++)
+        printf("%02x", ciphertext[i]);
+    printf("\n");
+
+    int plaintext_len = gcm_decrypt(
+        ciphertext, ciphertext_len,
+        aad, aad_len,
+        tag, key, iv, IV_LEN,
+        decrypted_message
+    );
+
+    if (plaintext_len >= 0) {
+        decrypted_message[plaintext_len] = '\0';
+        printf("Decrypted message: %s\n", decrypted_message);
+    } else {
+        printf("Decryption failed: auth tag mismatch.\n");
     }
-    
 
-
-    // close connected socket
-    int closed = close(new_socket_fd);  
+    // close the connection
+    int closed = close(new_socket_fd);
     printf("[Server] Closed.\n");
-
-
 }
